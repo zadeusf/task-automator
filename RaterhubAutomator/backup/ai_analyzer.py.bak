@@ -1,0 +1,117 @@
+﻿# RaterHubAutomator/ai_analyzer.py
+import logging
+import re
+import os
+import json
+import base64
+from google.cloud import aiplatform
+from config_manager import config
+
+# Constants
+GEMINI_PROMPT = """
+You are a Principal AI Quality Analyst... [Your full prompt here]
+"""
+
+class AIAnalyzer:
+    def __init__(self):
+        vertex_config = config.vertex_ai_config
+        self.project = vertex_config.get("project", "raterhubautomation")
+        self.location = vertex_config.get("location", "us-central1")
+        self.model_name = vertex_config.get("model", "gemini-2.5-pro")
+        
+        # Set the service account key file path from config
+        key_file = vertex_config.get("key_file", "raterhubautomation-7886dd999472.json")
+        key_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), key_file)
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = key_file_path
+        logging.info(f"Using Google Cloud service account key: {key_file_path}")
+        
+        # Initialize the Vertex AI SDK
+        aiplatform.init(project=self.project, location=self.location)
+        logging.info(f"Vertex AI initialized with project '{self.project}' in location '{self.location}'")
+        
+        # Set up the endpoint
+        self.endpoint_name = f"projects/{self.project}/locations/{self.location}/publishers/google/models/{self.model_name}"
+        logging.info(f"Using endpoint: {self.endpoint_name}")
+
+    def analyze_screenshots(self, screenshot_paths):
+        """Sends screenshots to Vertex AI and returns the text response."""
+        try:
+            # Create a prediction client
+            client = aiplatform.PredictionServiceClient(
+                client_options={"api_endpoint": f"{self.location}-aiplatform.googleapis.com"}
+            )
+            
+            # Prepare the request
+            instances = []
+            instance = {
+                "prompt": GEMINI_PROMPT,
+                "images": []
+            }
+            
+            # Add images to the request
+            for path in screenshot_paths:
+                with open(path, "rb") as f:
+                    image_bytes = f.read()
+                    image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+                    instance["images"].append(image_base64)
+            
+            instances.append(instance)
+            
+            # Make the prediction request
+            response = client.predict(
+                endpoint=self.endpoint_name,
+                instances=instances
+            )
+            
+            # Parse the response
+            if response and response.predictions:
+                try:
+                    # Try to extract the text from the response
+                    prediction = response.predictions[0]
+                    if hasattr(prediction, 'text'):
+                        response_text = prediction.text
+                    else:
+                        # Try to convert to string
+                        response_text = str(prediction)
+                    
+                    if response_text:
+                        logging.info("Received response from Vertex AI.")
+                        return response_text
+                except Exception as parse_error:
+                    logging.error(f"Error parsing response: {parse_error}")
+            
+            logging.warning("Empty or invalid response from Vertex AI. Defaulting to 'Release task'.")
+            return "Release task"
+                
+        except Exception as e:
+            logging.error(f"Vertex AI error: {e}. Defaulting to 'Release task'.")
+            return "Release task"
+
+def parse_ai_response(response_text):
+    """Parses the raw text from the AI into a structured dictionary."""
+    if 'Release task' in response_text:
+        logging.info("AI response indicates 'Release task'.")
+        return {'action': 'release', 'explanation': 'AI recommended releasing this task.'}
+
+    patterns = {
+        'a_rating': r'Response A\s*Rating:\s*(.+)',
+        'b_rating': r'Response B\s*Rating:\s*(.+)',
+        'sxs': r'SxS:\s*(.+)',
+        'explanation': r'Overall Explanation:\s*(.+)'
+    }
+    
+    parsed_data = {}
+    for key, pattern in patterns.items():
+        match = re.search(pattern, response_text, re.IGNORECASE | re.DOTALL)
+        if match:
+            parsed_data[key] = match.group(1).strip()
+        else:
+            logging.error(f"Parsing failed: Could not find pattern for '{key}'")
+            return {'action': 'release', 'explanation': f'Failed to parse {key} from AI response'} # Fail safely
+
+    # Clean up explanation
+    parsed_data['explanation'] = ' '.join(parsed_data['explanation'].split())
+    parsed_data['action'] = 'rate'
+    
+    logging.info(f"Successfully parsed AI response: {parsed_data}")
+    return parsed_data

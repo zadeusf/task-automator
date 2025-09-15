@@ -1,0 +1,7 @@
+selenium
+webdriver_manager
+Pillow
+PySimpleGUI
+pywin32
+google-cloud-aiplatform
+google-generativeai

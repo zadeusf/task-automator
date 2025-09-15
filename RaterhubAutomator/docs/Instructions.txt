@@ -1,0 +1,87 @@
+## Document Scope
+This document focuses specifically on the expected HTML structure and CSS selectors for key interactive elements on the RaterHub task page. It provides guidance for developers on how to locate and interact with these elements using automation tools like Selenium.
+
+For instructions on setting up the project, installing dependencies, configuring settings (`config.json`), and running the RaterHub Automator tool, please refer to the `README.md` file in the project root.
+Analysis of RaterHub Page Structure
+The page is built around a main form with the ID ewok-task-form. All interactive elements (checkboxes, radio buttons, etc.) are contained within this form. The structure uses unique IDs for most elements, which is excellent for automation as IDs are the most reliable selectors.
+Here is a breakdown of the selectors you will need, categorized by their function on the page.
+1. Response A & B: Issues Checkboxes
+For each response (A and B), there is a set of checkboxes to identify issues. The "None of the above" checkbox is the most important for your tool's logic.
+Response A
+Fails to satisfy user intent: input#editable-74-input
+Difficult to understand: input#editable-76-input
+Inaccurate/Misleading: input#editable-80-input
+Inappropriate: input#editable-2087-input
+None of the above: input#editable-2555-input
+Robust Alternative: td#editable-38 input[name="checkNone1"] (Selects the "None" checkbox specifically within the left-side column for Response A).
+Response B
+The selectors for Response B follow a similar pattern, often with _copy appended to the ID.
+Fails to satisfy user intent: input#editable-74_copy-input
+Difficult to understand: input#editable-76_copy-input
+Inaccurate/Misleading: input#editable-80_copy-input
+Inappropriate: input#editable-2494-input
+None of the above: input#editable-2557-input
+Robust Alternative: td#editable-39 input[name="checkNone2"] (Selects the "None" checkbox specifically within the right-side column for Response B).
+2. Response A & B: Helpfulness Sliders/Ratings
+The provided HTML does not contain the actual <input> elements for the helpfulness sliders/ratings themselves, only the descriptive text. This is a strong indicator that these elements are generated dynamically by JavaScript after the page loads.
+You will need to use your browser's developer tools (right-click -> Inspect) on the live page to find the correct selectors. They will likely be a series of radio buttons. Based on the surrounding structure, a hypothetical selector might look like this:
+Hypothetical Selector (Helpfulness):
+Based on common patterns, helpfulness ratings are likely radio buttons within a container related to the response.
+For Response A: `td#editable-38 input[type="radio"][name="helpful1"]` (Value: 1-8 based on rating)
+For Response B: `td#editable-39 input[type="radio"][name="helpful2"]` (Value: 1-8 based on rating)
+Action: You would need to select the correct radio button by its `value` attribute (e.g., `[value="4"]` for "Mostly Helpful").
+You will need to find the actual `name` and `value` attributes by inspecting the live page.
+
+Action: You would need to select the correct radio button by its value (e.g., [value="4"] for "Very Helpful").
+You will need to find the actual name and value attributes by inspecting the live page.
+3. Side-by-Side (SxS) Comparison
+This is the central rating component where you compare Response A to Response B. These are radio buttons contained within a div with the ID editable-40.
+Response A is Much Better: input#editable-41-input (Value: MuchBetterThan)
+Response A is Better: input#editable-43-input (Value: BetterThan)
+Response A is Slightly Better: input#editable-45-input (Value: SlightlyBetterThan)
+About The Same: input#editable-47-input (Value: AboutTheSameAs)
+Response B is Slightly Better: input#editable-49-input (Value: SlightlyWorseThan)
+Response B is Better: input#editable-51-input (Value: WorseThan)
+Response B is Much Better: input#editable-53-input (Value: MuchWorseThan)
+Robust Selector Strategy: Using the name and value attributes is a very stable alternative.
+Example: input[name="score"][value="AboutTheSameAs"]
+4. Explanation / Comment Box
+This is another area that appears to be dynamic. The HTML shows a div with the ID editable-2564 (and editable-2566) which contains the prompt text, but not a visible <textarea> element. This often means the page uses a rich text editor.
+Primary Target: There is no direct <textarea> selector in the provided HTML.
+Likely Target (Comment Box):
+The main, required comment box is likely a `<textarea>` element. Based on common RaterHub patterns, it might have an ID starting with `editable-` or be identifiable by its position/role on the page.
+A flexible selector might be `textarea[id^="editable-"]` or a more specific one if an ID is consistent (e.g., `#some-specific-comment-box-id`).
+How to Automate:
+Use Selenium to locate the comment box element.
+Clear any existing text using `clear()`.
+Send your text using `send_keys()`.
+Action: You must inspect the live page to find the correct selector for the main, required comment box that receives the text input.
+
+How to Automate:
+Use Selenium to click() on the div that represents the comment box.
+After clicking, send your text using send_keys().
+Action: You must inspect the live page to find the correct div that receives the text input for the main, required comment.
+5. Submit Button
+Similar to the helpfulness sliders and comment box, the final Submit button is not present in the initial HTML. It is almost certainly loaded via JavaScript.
+Action: You will need to run your tool, pause it before submission, and use the browser's inspector to find the ID or a unique class for the submit button.
+Common Selectors for Submit Buttons: Look for selectors like button#submit-button, input[type="submit"], or something like button.ewok-submit-button.
+Summary of Dynamic Elements & Recommendations
+Wait for Elements: The absence of key elements in the static HTML confirms that the page relies heavily on JavaScript. You must use explicit waits in your Selenium script to ensure elements are present and clickable before interacting with them.
+code
+Python
+# Example of an explicit wait in Selenium
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+# Wait up to 10 seconds for the 'None of the above' checkbox to be clickable
+none_of_the_above_A = WebDriverWait(driver, 10).until(
+    EC.element_to_be_clickable((By.CSS_SELECTOR, "input#editable-2555-input"))
+)
+none_of_the_above_A.click()
+Inspect the Live Page: It is critical to use your browser's developer tools on a live RaterHub task page to confirm the selectors for:
+Helpfulness Ratings (likely radio buttons).
+The main Comment Box div.
+The final Submit Button.
+Robustness: While the current IDs seem stable, it's good practice to have alternatives. Using name attributes or parent-child relationships (e.g., td#editable-38 input[name="checkNone1"]) can make your script more resilient to minor changes in the page's HTML.
+By incorporating these selectors and handling the dynamic content correctly, you will have all the necessary targeting information to make your raterhub_automator.py fully functional.

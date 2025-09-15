@@ -1,0 +1,63 @@
+{
+    "ai": "gemini",
+    "auto_submit": false,
+    "loop_tasks": false,
+    "delay_seconds": 2,
+    "screenshot_count": 4,
+    "chrome_debug_port": 9222,
+    "webdriver_timeout": 30,
+    "chrome_launch_timeout": 30,
+    "vertex_ai": {
+        "model": "gemini-2.5-pro",
+        "location": "us-central1",
+        "project": "raterhubautomation",
+        "key_file": "credentials/raterhubautomation-7886dd999472.json"
+    },
+    "logging": {
+        "level": "INFO",
+        "max_log_files": 10,
+        "max_log_size_mb": 50
+    },
+    "platform": {
+        "safe_mode": true,
+        "disable_unicode": true,
+        "fallback_encoding": "ascii"
+    },
+    "authentication": {
+        "auto_setup": true,
+        "warning_suppression": false
+    },
+    "slider": {
+        "scale_type": "sxs_7_point",
+        "verification_enabled": true,
+        "retry_attempts": 3,
+        "position_tolerance": 0.1,
+        "interaction_strategy": "track_first",
+        "debug_logging": true,
+        "f12_patterns": true,
+        "max_attempts": 3
+    },
+    "performance": {
+        "enabled": true,
+        "screenshot_compression": true,
+        "screenshot_quality": 85,
+        "screenshot_max_dimension": 1920,
+        "element_caching": true,
+        "cache_duration": 5.0,
+        "smart_sleep": true,
+        "max_sleep_duration": 1.0,
+        "batch_javascript": true,
+        "ai_image_optimization": true,
+        "ai_image_max_dimension": 1600,
+        "ai_image_quality": 75,
+        "performance_reporting": true,
+        "report_interval": 5
+    },
+    "debug": true,
+    "chrome_path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "chrome_user_data_dir": "C:\\temp\\chrome_debug",
+    "screenshot_scroll_delay": 1.0,
+    "screenshot_capture_delay": 1.5,
+    "action_post_delay": 0.5,
+    "submit_release_wait_delay": 5.0
+}
